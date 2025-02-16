@@ -6,6 +6,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 @RestController
@@ -23,5 +24,12 @@ public class GeneExpressionController {
             @RequestParam String geneId,
             @RequestParam String tissueOfInterest) {
         return geneExpressionService.getSpecificity(geneId, tissueOfInterest);
+    }
+
+    @GetMapping("/expressions")
+    public Flux<ExpressionResult> getGeneExpressions(
+            @RequestParam String geneId,
+            @RequestParam String tissueOfInterest) {
+        return geneExpressionService.getSpecificityMultiple(geneId, tissueOfInterest);
     }
 }

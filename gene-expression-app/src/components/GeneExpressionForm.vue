@@ -27,6 +27,8 @@
   <script lang="ts">
   import { defineComponent } from 'vue';
   
+  const apiUrl = "/api/gene/expression";
+
   interface ResponseData {
     highestTissue: string;
     specificity: number;
@@ -48,7 +50,7 @@
             tissueOfInterest: this.tissueOfInterest
           });
   
-          const res = await fetch(`http://localhost:8080/api/gene/expression?${queryParams}`);
+          const res = await fetch(`${apiUrl}?${queryParams}`);
           if (!res.ok) throw new Error("Error fetching data");
   
           const data = await res.json();
