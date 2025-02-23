@@ -21,10 +21,9 @@ export default defineComponent({
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   text-align: center;
-  color: #7eb8f2;
+  color: #4ea0f2;
 }
 </style>
-
 
 <style scoped>
 .logo {

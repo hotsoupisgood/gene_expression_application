@@ -4,11 +4,11 @@
       <form @submit.prevent="fetchGeneExpression">
         <div>
           <label for="geneId">Ensembl ID:</label>
-          <input type="text" id="geneId" v-model="geneId" required />
+          <input type="text" id="geneId" v-model="geneId" placeholder="e.g. ENSG1, ENSG2, ENSG3" required />
         </div>
         <div>
           <label for="tissueOfInterest">Tissue Type:</label>
-          <input type="text" id="tissueOfInterest" v-model="tissueOfInterest" />
+          <input type="text" id="tissueOfInterest" v-model="tissueOfInterest"  placeholder="e.g. brain" />
         </div>
         <button type="submit">Submit</button>
       </form>
@@ -18,17 +18,19 @@
         <p>Highest Tissue: {{ response.highestTissue }}</p>
         <p>Specificity: {{ response.specificity }}</p>
       </div>
+      <div id="plotlyChart"  v-show="showChart"></div>
     </div>
-    <div>
+    <div id="about">
       Explore gene activity across human tissues using expression data from the Open Targets platform. Enter a gene ID to view expression levels by tissue for a clear snapshot of gene activity.
     </div>
   </template>
   
   <script lang="ts">
-  import { defineComponent } from 'vue';
-  
-  const apiUrl = "/api/gene/expression";
-
+  import { defineComponent,onMounted, ref } from 'vue';
+  import * as Plotly from "plotly.js-dist-min"; 
+  const apiUrl = "http://127.0.0.1:8080/api/gene/expressions";
+  // const apiUrl = "/api/gene/expression";
+  let plotlyChart: any;
   interface ResponseData {
     highestTissue: string;
     specificity: number;
@@ -39,8 +41,15 @@
       return {
         geneId: '' as string,
         tissueOfInterest: '' as string,
-        response: null as ResponseData | null
+        response: null as ResponseData | null,
+        showChart: false as boolean
       };
+    },
+    onMounted: {
+      async () {
+        plotlyChart = document.getElementById("plotlyChart");
+        console.log('onmount');
+      }
     },
     methods: {
       async fetchGeneExpression() {
@@ -52,14 +61,57 @@
   
           const res = await fetch(`${apiUrl}?${queryParams}`);
           if (!res.ok) throw new Error("Error fetching data");
-  
-          const data = await res.json();
-          this.response = data;
+          const fakedata = await res.json();
+
+          // const fakedata =     [
+          //   {
+          //     "geneID": "ens123",
+          //     "highestTissue": "brain",
+          //     "tissueOfInterest": "brain",
+          //     "specificity": 0.7
+          //   },
+          //   {
+          //     "geneID": "ens123",
+          //     "highestTissue": "brain",
+          //     "tissueOfInterest": "brain",
+          //     "specificity": 0.7
+          //   },
+          //   {
+          //     "geneID": "ens123",
+          //     "highestTissue": "brain",
+          //     "tissueOfInterest": "brain",
+          //     "specificity": 0.7
+          //   }
+          // ];
+          const highestTissueArray            =  fakedata.map((x:{ tissueOfInterest: string; }) => x.tissueOfInterest);
+          const geneIdArray                   =  fakedata.map((x:{ geneId: string; }) => x.geneId);
+          const specificityArray              =  fakedata.map((x:{ specificity:      number; }) => x.specificity);
+          console.log(geneIdArray)
+          console.log(specificityArray)
+          const layout = {
+            title: {
+              text: `Gene Expression Levels in ${this.tissueOfInterest}`
+            },
+            xaxis: { title: {text: "Gene ID"} },
+            yaxis: { title: {text: "Expression Level"} },
+          };
+          const data: Plotly.BarData[] = [
+            {
+              // x: this.geneId.split(',').map((x: string) => x.trim()),
+              x: geneIdArray,
+              y: specificityArray,
+              type: 'bar'
+            }
+          ];
+          Plotly.newPlot('plotlyChart', data, layout);
+          this.showChart = true;
+
         } catch (error) {
           console.error("Error:", error);
           this.response = { highestTissue: "N/A", specificity: NaN };
         }
       }
+      
     }
   });
   </script>

@@ -31,7 +31,7 @@ public class GeneExpressionService {
         return Flux.fromArray(gene_ids.split(","))
                 .map(String::trim)
                 .filter(s -> !s.isEmpty())
-                .flatMap(s -> this.getSpecificity(s, tissueOfInterest));
+                .concatMap(s -> this.getSpecificity(s, tissueOfInterest));
     }
 
     public Mono<ExpressionResult> getSpecificity(String gene_id, String tissueOfInterest) {
@@ -39,13 +39,13 @@ public class GeneExpressionService {
         // Check if data exists in the database
         Optional<GeneCache> cachedResult = geneCacheRepository.findByGeneIdAndTissueOfInterest(gene_id, tissueOfInterest);
         if (cachedResult.isPresent()) {
-            logger.info("✅ Cache hit for gene_id: {} and tissue: {}", gene_id, tissueOfInterest);
+            logger.info("Cache hit for gene_id: {} and tissue: {}", gene_id, tissueOfInterest);
             GeneCache cache = cachedResult.get();
-            return Mono.just(new ExpressionResult(cache.getTissueOfInterest(), cache.getHighestTissue(), cache.getSpecificity()));
+            return Mono.just(new ExpressionResult(gene_id, cache.getTissueOfInterest(), cache.getHighestTissue(), cache.getSpecificity()));
         }
         logger.info("Cache miss for gene_id: {} and tissue: {}. Fetching from API...", gene_id, tissueOfInterest);
         return OpenTargetRequest(gene_id)
-            .map(response -> processResponse(response, tissueOfInterest))
+            .map(response -> processResponse(gene_id, response, tissueOfInterest))
             .doOnSuccess(result -> {
                 // 3️⃣ **Store the result in the database for future use**
                 GeneCache geneCache = new GeneCache(gene_id, result.getTissueOfInterest(), result.getHighestTissue(), result.getSpecificity());
@@ -79,7 +79,7 @@ public class GeneExpressionService {
                 .bodyToMono(String.class)
                 .doOnNext(response -> logger.debug("Received response: {}", response));
     }
-    private ExpressionResult processResponse(String jsonResponse, String tissueOfInterest) {
+    private ExpressionResult processResponse(String geneId, String jsonResponse, String tissueOfInterest) {
         try {
             logger.debug("Processing response from API");
 
@@ -97,7 +97,7 @@ public class GeneExpressionService {
             // Check if there are any expressions
             if (expressions.isMissingNode() || !expressions.elements().hasNext()) {
                 logger.warn("No expressions data found for response: {}", jsonResponse);
-                return new ExpressionResult("NA", "NA", 0.0);
+                return new ExpressionResult("NA", "NA", "NA", 0.0);
             }
 
             double total = 0.0;
@@ -140,11 +140,11 @@ public class GeneExpressionService {
             double specificity = total > 0 ? Math.round((tissueTotal / total) * 100.0) / 100.0 : 0.0;
             logger.debug("Calculated specificity: {} for highest tissue: {}", specificity, highestTissue);
 
-            return new ExpressionResult(tissueOfInterest, highestTissue, specificity);
+            return new ExpressionResult(geneId, tissueOfInterest, highestTissue, specificity);
 
         } catch (Exception e) {
             logger.error("Error processing response: {}", jsonResponse, e);
-            return new ExpressionResult("NA", "NA", 0.0);
+            return new ExpressionResult("NA", "NA", "NA", 0.0);
         }
     }
 
@@ -162,14 +162,20 @@ public class GeneExpressionService {
     }
 
     public static class ExpressionResult {
+        private final String geneId;
         private final String highestTissue;
         private final String tissueOfInterest;
         private final double specificity;
 
-        public ExpressionResult(String tissueOfInterest, String highestTissue, double specificity) {
+        public ExpressionResult(String geneId, String tissueOfInterest, String highestTissue, double specificity) {
+            this.geneId = geneId;
             this.highestTissue = highestTissue;
             this.tissueOfInterest = tissueOfInterest;
             this.specificity = specificity;
+        }
+
+        public String getGeneId() {
+            return geneId;
         }
 
         public String getHighestTissue() {
