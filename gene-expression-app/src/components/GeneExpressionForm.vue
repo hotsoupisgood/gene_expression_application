@@ -19,8 +19,10 @@
         <p>Specificity: {{ response.specificity }}</p>
       </div>
       <div id="plotlyChart"  v-show="showChart"></div>
+      <div v-show="showChart"><input v-model="outputSpec"></input></div>
     </div>
     <div id="about">
+      <h4>About</h4>
       Explore gene activity across human tissues using expression data from the Open Targets platform. Enter a gene ID to view expression levels by tissue for a clear snapshot of gene activity.
     </div>
   </template>
@@ -42,7 +44,9 @@
         geneId: '' as string,
         tissueOfInterest: '' as string,
         response: null as ResponseData | null,
-        showChart: false as boolean
+        showChart: false as boolean,
+        outputSpec: '' as String
+
       };
     },
     onMounted: {
@@ -86,8 +90,7 @@
           const highestTissueArray            =  fakedata.map((x:{ tissueOfInterest: string; }) => x.tissueOfInterest);
           const geneIdArray                   =  fakedata.map((x:{ geneId: string; }) => x.geneId);
           const specificityArray              =  fakedata.map((x:{ specificity:      number; }) => x.specificity);
-          console.log(geneIdArray)
-          console.log(specificityArray)
+          this.outputSpec = specificityArray.join(', ')
           const layout = {
             title: {
               text: `Gene Expression Levels in ${this.tissueOfInterest}`
