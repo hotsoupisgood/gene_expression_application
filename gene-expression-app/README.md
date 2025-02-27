@@ -11,3 +11,8 @@ npm install
 npm run dev
 
 ```
+
+### Example ensg id's
+``` js
+ENSG00000139618, ENSG00000164061, ENSG00000132535
+```

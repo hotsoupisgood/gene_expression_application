@@ -23,16 +23,15 @@
     </div>
     <div id="about">
       <h4>About</h4>
-      Explore gene activity across human tissues using expression data from the Open Targets platform. Enter a gene ID to view expression levels by tissue for a clear snapshot of gene activity.
+      <p>Explore gene activity across human tissues using expression data from the Open Targets platform. Enter a gene ID to view expression levels by tissue for a clear snapshot of gene activity.</p>
     </div>
   </template>
   
   <script lang="ts">
-  import { defineComponent,onMounted, ref } from 'vue';
+  import { defineComponent } from 'vue';
   import * as Plotly from "plotly.js-dist-min"; 
   const apiUrl = "http://127.0.0.1:8080/api/gene/expressions";
-  // const apiUrl = "/api/gene/expression";
-  let plotlyChart: any;
+  // const apiUrl = "/api/gene/expressions";
   interface ResponseData {
     highestTissue: string;
     specificity: number;
@@ -49,15 +48,10 @@
 
       };
     },
-    onMounted: {
-      async () {
-        plotlyChart = document.getElementById("plotlyChart");
-        console.log('onmount');
-      }
-    },
     methods: {
       async fetchGeneExpression() {
         try {
+          // Make query
           const queryParams = new URLSearchParams({
             geneId: this.geneId,
             tissueOfInterest: this.tissueOfInterest
@@ -69,25 +63,25 @@
 
           // const fakedata =     [
           //   {
-          //     "geneID": "ens123",
+          //     "geneId": "ens123",
           //     "highestTissue": "brain",
           //     "tissueOfInterest": "brain",
           //     "specificity": 0.7
           //   },
           //   {
-          //     "geneID": "ens123",
+          //     "geneId": "ens123",
           //     "highestTissue": "brain",
           //     "tissueOfInterest": "brain",
           //     "specificity": 0.7
           //   },
           //   {
-          //     "geneID": "ens123",
+          //     "geneId": "ens123",
           //     "highestTissue": "brain",
           //     "tissueOfInterest": "brain",
           //     "specificity": 0.7
           //   }
           // ];
-          const highestTissueArray            =  fakedata.map((x:{ tissueOfInterest: string; }) => x.tissueOfInterest);
+          // Make graph
           const geneIdArray                   =  fakedata.map((x:{ geneId: string; }) => x.geneId);
           const specificityArray              =  fakedata.map((x:{ specificity:      number; }) => x.specificity);
           this.outputSpec = specificityArray.join(', ')
@@ -98,7 +92,7 @@
             xaxis: { title: {text: "Gene ID"} },
             yaxis: { title: {text: "Expression Level"} },
           };
-          const data: Plotly.BarData[] = [
+          const data: Plotly.Data[] = [
             {
               // x: this.geneId.split(',').map((x: string) => x.trim()),
               x: geneIdArray,
