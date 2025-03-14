@@ -42,7 +42,7 @@ public class GeneExpressionService {
                 .retrieve()
                 .bodyToMono(String.class)
                 .map(this::extractEnsemblId)
-                .err("Not Found");// Blocking to return result synchronously
+                .defaultIfEmpty("Not Found");// Blocking to return result synchronously
     }
     // Helper function to extract Ensembl ID from the JSON response
     private String extractEnsemblId(String jsonResponse) {
