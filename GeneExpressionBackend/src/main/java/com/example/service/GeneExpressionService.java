@@ -27,13 +27,51 @@ public class GeneExpressionService {
         this.geneCacheRepository = geneCacheRepository;
         this.webClient = webClientBuilder.baseUrl("https://api.platform.opentargets.org/api/v4/graphql").build();
     }
+    private Mono<String> checkAndConvertGeneId(String geneId) {
+        // If it's already an Ensembl ID, return it as-is
+        if (geneId.startsWith("ENSG")) {
+            return Mono.just(geneId);
+        }
+        WebClient webClient = WebClient.create("https://mygene.info/v3");
+
+        return webClient.get()
+                .uri(uriBuilder -> uriBuilder.path("/query")
+                        .queryParam("q", "symbol:" + geneId)
+                        .queryParam("fields", "ensembl.gene")
+                        .build())
+                .retrieve()
+                .bodyToMono(String.class)
+                .map(this::extractEnsemblId)
+                .err("Not Found");// Blocking to return result synchronously
+    }
+    // Helper function to extract Ensembl ID from the JSON response
+    private String extractEnsemblId(String jsonResponse) {
+        try {
+            JsonNode root = objectMapper.readTree(jsonResponse);
+            JsonNode hits = root.path("hits");
+
+            if (hits.isArray() && !hits.isEmpty()) {
+                JsonNode firstHit = hits.get(0);
+                JsonNode ensemblNode = firstHit.path("ensembl").path("gene");
+
+                if (!ensemblNode.isMissingNode()) {
+                    return ensemblNode.asText();
+                }
+            }
+        } catch (Exception e) {
+            e.printStackTrace(); // Log error properly in production
+        }
+        return "Not Found";
+    }
+
     public Flux<ExpressionResult> getSpecificityMultiple(String gene_ids, String tissueOfInterest) {
         Flux<String> fluxTissues = Flux.fromArray(tissueOfInterest.split(","))
                 .map(String::trim)
                 .filter(s -> !s.isEmpty());
         Flux<String> fluxId = Flux.fromArray(gene_ids.split(","))
                 .map(String::trim)
-                .filter(s -> !s.isEmpty());
+                .filter(s -> !s.isEmpty())
+                .concatMap(this::checkAndConvertGeneId);
         return fluxId.concatMap(geneId ->
                         fluxTissues.flatMap(tissue ->
                                 this.getSpecificity(geneId, tissue)));
