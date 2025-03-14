@@ -7,9 +7,14 @@ Ensure you have **Node.js** and **npm** (or **yarn**) installed.
 If you haven't already installed the project dependencies, run:
 ``` sh
 npm install
-
+```
+### Run in development
+```
 npm run dev
-
+```
+### Build
+```
+npm run build
 ```
 
 ### Example ensg id's
