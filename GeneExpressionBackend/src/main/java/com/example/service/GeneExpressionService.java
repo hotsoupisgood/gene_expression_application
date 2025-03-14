@@ -28,10 +28,15 @@ public class GeneExpressionService {
         this.webClient = webClientBuilder.baseUrl("https://api.platform.opentargets.org/api/v4/graphql").build();
     }
     public Flux<ExpressionResult> getSpecificityMultiple(String gene_ids, String tissueOfInterest) {
-        return Flux.fromArray(gene_ids.split(","))
+        Flux<String> fluxTissues = Flux.fromArray(tissueOfInterest.split(","))
                 .map(String::trim)
-                .filter(s -> !s.isEmpty())
-                .concatMap(s -> this.getSpecificity(s, tissueOfInterest));
+                .filter(s -> !s.isEmpty());
+        Flux<String> fluxId = Flux.fromArray(gene_ids.split(","))
+                .map(String::trim)
+                .filter(s -> !s.isEmpty());
+        return fluxId.concatMap(geneId ->
+                        fluxTissues.flatMap(tissue ->
+                                this.getSpecificity(geneId, tissue)));
     }
 
     public Mono<ExpressionResult> getSpecificity(String gene_id, String tissueOfInterest) {
